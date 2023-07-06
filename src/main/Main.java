@@ -4,16 +4,32 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
-import java.util.Random;
 
 public class Main {
 
 	public static void main(String[] args) throws UnsupportedEncodingException {
+		System.out.println("jar is in " + getJarLocation());
 		
 		createRandomTowerStatsFile();
 		
+	}
+	
+	
+	
+	private static String getJarLocation() {
+		try {
+			String fullPath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation()
+				    .toURI()).getPath();
+			System.out.println(fullPath);
+			return fullPath.substring(0, fullPath.lastIndexOf(File.separator)+1);
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	private static void createRandomTowerStatsFile() throws UnsupportedEncodingException {
@@ -21,7 +37,8 @@ public class Main {
 		Turret.readTurretStats();
 		for (Turret turret : Turret.values()) {
 			if (turret.randomizeStats()) {
-				String fileName = "output\\" + turret.name() + ".Stats.toml";
+				String fileName = getJarLocation() + turret.name() + ".Stats.toml";
+				System.out.println(fileName);
 				//File myObj = new File(fileName);
 
 				try {

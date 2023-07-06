@@ -5,9 +5,17 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.security.CodeSource;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Random;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public enum Turret {
 
@@ -38,7 +46,6 @@ public enum Turret {
 	 * returns if the tower supported randomization
 	 */
 	public boolean randomizeStats() {
-		// readStats();
 		if (!isTrap) {
 			adjustCost();
 			adjustDamage();
@@ -50,7 +57,7 @@ public enum Turret {
 
 	private void adjustCost() {
 		// randomizing changing the cost to 1 or 3
-		int costChange = random.nextInt(-1, 2);
+		int costChange = random.nextInt( 3)-1;
 		// ensuring the tutorial is beatable
 		if (costChange == 1 && this == Spinblade) {
 			costChange = 0;
@@ -70,11 +77,15 @@ public enum Turret {
 	private void adjustDamage() {
 		// randomizing damage,
 		// halving/doubling is too extreme, 30% down should still feel impactful
-		float damageChange = random.nextFloat(0.7f, 1 / 0.7f);
+		float damageChange = randomFloat(0.7f, 1 / 0.7f);
 		int oldDamage = damage;
 		damage = Math.round(damage * damageChange);
 		float realChange = (float) damage / oldDamage;
 		health = Math.round(health / realChange);
+	}
+	
+	private float randomFloat(float min, float max) {
+		return random.nextFloat()*(max-min)+min;
 	}
 
 	private void adjustOther() {
@@ -83,16 +94,16 @@ public enum Turret {
 		float slowChange = 1;
 		float slowDurationChange = 1;
 		if (range > 1) {
-			rangeChange = random.nextFloat(0.7f, 1 / 0.7f);
+			rangeChange = randomFloat(0.7f, 1 / 0.7f);
 		}
 		if (knockback > 0) {
-			knockbackChange = random.nextFloat(0.7f, 1 / 0.7f);
+			knockbackChange = randomFloat(0.7f, 1 / 0.7f);
 		}
 		if (slowAmount > 0) {
-			slowChange = random.nextFloat(0.7f, 1 / 0.7f);
+			slowChange = randomFloat(0.7f, 1 / 0.7f);
 		}
 		if (slowDuration > 0) {
-			slowDurationChange = random.nextFloat(0.7f, 1 / 0.7f);
+			slowDurationChange = randomFloat(0.7f, 1 / 0.7f);
 		}
 		// too keep turrets from going too crazy make sure it didn't all change to
 		// the same direction
@@ -131,12 +142,39 @@ public enum Turret {
 		return result;
 	}
 
+	private static List<String> getFiles() {
+		List<String> result = new ArrayList<>();
+		try {
+			CodeSource src = Main.class.getProtectionDomain().getCodeSource();
+			List<String> list = new ArrayList<String>();
+
+			if (src != null) {
+				URL jar = src.getLocation();
+				ZipInputStream zip = new ZipInputStream(jar.openStream());
+				ZipEntry ze = null;
+
+				while ((ze = zip.getNextEntry()) != null) {
+					String entryName = ze.getName();
+					if (entryName.startsWith("turret") && entryName.endsWith(".toml")) {
+						result.add(entryName);
+					}
+				}
+
+			}
+		} catch (Exception e) {
+
+		}
+		return result;
+	}
+
 	public static void readTurretStats() {
-		File directory = new File("ress");
+		List<String> filenames = getFiles();
+		//File directory = new File("ress");
 		BufferedReader reader;
-		for (File file : directory.listFiles()) {
+		for (String file : filenames) {
 			try {
-				reader = new BufferedReader(new FileReader(file));
+				InputStream stream = Turret.class.getResourceAsStream("/" + file);
+				reader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
 				String line = reader.readLine();
 				Turret currentTower = null;
 				while (line != null) {
